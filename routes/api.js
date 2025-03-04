@@ -88,8 +88,22 @@ module.exports = function (app) {
       res.send(returnString);
     })
     .delete(async function (req, res) {
-      let returnString = '';
-
+      let returnString;
+      let boardData = await BoardDB.findOne({name: req.params.board.toLowerCase()});
+      if (boardData !== null) {
+        for (let i = 0; i < boardData.threads.length; i++) {
+          if (boardData.threads[i]._id.toString() === req.body.thread_id){
+            if (boardData.threads[i].delete_password === req.body.delete_password) {
+              boardData.threads = boardData.threads.slice(0, i).concat(boardData.threads.slice(i + 1));
+              boardData.save();
+              returnString = 'success';
+            } else {
+              returnString = 'incorrect password';
+            }
+            break;
+          }
+        }
+      }
       res.send(returnString);
     });
     
@@ -98,8 +112,6 @@ module.exports = function (app) {
     let boardData = await BoardDB.findOne({name: req.params.board.toLowerCase()});
     let returnObject;
     if (boardData !== null) {
-      console.log(req.params);
-      console.log(req.query);
       for (let i = 0; i < boardData.threads.length; i++) {
         if (boardData.threads[i]._id.toString() === req.query.thread_id) {
           const thread = boardData.threads[i];
@@ -139,8 +151,50 @@ module.exports = function (app) {
     }
     res.json(returnObject);
   })
-  .put()
-  .delete();
+  .put(async function(req, res) {
+    let returnString;
+    let boardData = await BoardDB.findOne({name: req.params.board.toLowerCase()});
+    if (boardData !== null) {
+      for (let i = 0; i < boardData.threads.length; i++) {
+        if (boardData.threads[i]._id.toString() === req.body.thread_id){
+          for (let j = 0;j < boardData.threads[i].replies.length; j++) {
+            if (boardData.threads[i].replies[j]._id.toString() == req.body.reply_id) {
+              boardData.threads[i].replies[j].reported = true;
+              boardData.save();
+              returnString = 'reported';
+              break;
+            }
+          }
+          break;
+        } 
+      }
+    }
+    res.send(returnString);
+  })
+  .delete(async function(req, res) {
+    let returnString;
+      let boardData = await BoardDB.findOne({name: req.params.board.toLowerCase()});
+      if (boardData !== null) {
+        for (let i = 0; i < boardData.threads.length; i++) {
+          if (boardData.threads[i]._id.toString() === req.body.thread_id){
+            for (let j = 0;j < boardData.threads[i].replies.length; j++) {
+              if (boardData.threads[i].replies[j]._id.toString() == req.body.reply_id) {
+                if (boardData.threads[i].replies[j].delete_password === req.body.delete_password) {
+                  boardData.threads[i].replies[j].text = '[deleted]'
+                  boardData.save();
+                  returnString = 'success';
+                } else {
+                  returnString = 'incorrect password';
+                }
+                break;
+              }
+            }
+            break;
+          }
+        }
+      }
+      res.send(returnString);
+  });
 
 };
 
